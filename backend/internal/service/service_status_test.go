@@ -30,7 +30,7 @@ func TestStatusServiceList(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	svc := NewStatusService(repo, time.Hour)
+	svc := NewStatusService(repo, repository.NewDispatchClaimRepository(db), time.Hour)
 	items, total, err := svc.List(context.Background(), 1, 20)
 	if err != nil {
 		t.Fatal(err)

@@ -13,4 +13,9 @@ const (
 
 	SMSKindGreeting = "greeting"
 	SMSKindAlert    = "alert"
+
+	ClaimStateClaimed  = "claimed"
+	ClaimStateSent     = "sent"
+	ClaimStateFailed   = "failed"
+	ClaimStateReleased = "released"
 )

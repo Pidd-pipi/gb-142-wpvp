@@ -65,7 +65,11 @@ func (r *TemplateRepository) RandomActive(ctx context.Context, category string) 
 	if category != "" {
 		q = q.Where("category = ?", category)
 	}
-	err := q.Order("RAND()").First(&item).Error
+	randomOrder := "RAND()"
+	if r.db.Dialector.Name() != "mysql" {
+		randomOrder = "RANDOM()"
+	}
+	err := q.Order(randomOrder).First(&item).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, ErrNotFound
 	}

@@ -17,7 +17,21 @@ paths:
     get: { summary: 模板列表, responses: { '200': { description: success } } }
     post: { summary: 新增模板, responses: { '201': { description: created } } }
   /api/v1/sms-logs:
-    get: { summary: 短信发送日志, responses: { '200': { description: success } } }
+    get:
+      summary: 短信发送日志（含 period_key 与关联占位 claim）
+      responses: { '200': { description: success } }
+  /api/v1/admin/statuses:
+    get:
+      summary: 管理员状态查询（含问候周期与告警事件的占用回读）
+      responses: { '200': { description: success } }
+  /api/v1/admin/jobs/greetings:
+    post:
+      summary: 手工触发问候扫描，返回 {sent, skipped, failed, released}
+      responses: { '200': { description: success } }
+  /api/v1/admin/jobs/alerts:
+    post:
+      summary: 手工触发超时告警扫描，返回 {sent, skipped, failed, released}
+      responses: { '200': { description: success } }
   /api/v1/external/sms-logs:
     get:
       summary: 外部查询发送日志

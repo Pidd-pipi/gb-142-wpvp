@@ -23,6 +23,16 @@ docker compose down
 - 节日、天气、季节、通用分类的模板库 CRUD。
 - 内部日志查询和 API Key 保护的外部日志查询。
 
+## 并发幂等闭环
+
+问候与告警通过 `dispatch_claims` 占位表实现“同一周期/事件只成功一次”，并发扫描、重复触发和失败重试都不会重复发送：
+
+- **唯一周期/事件**：问候按关怀频率归入自然周期（daily=自然日、weekly=ISO 周、monthly=自然月）；告警按最近确认时间（无确认时取关怀开始时间）形成唯一事件，新的确认自动开启新事件。占位表对 `(关怀对象, 订阅, 类型, 周期/事件)` 建唯一索引，问候的订阅位固定为 0。
+- **原子占位**：发送前先占位（`claimed`）。并发扫描只有一个执行流能占位成功；占位在途超过 10 分钟视为崩溃残留，允许回收重试。
+- **状态机**：`claimed → sent / failed / released`。`sent` 为终态，同周期/事件不再发送；`failed` 只记失败（含失败原因），后续扫描可重新认领重试；`released` 表示主动放弃，不占用事件。
+- **扫描期间确认**：告警占位成功后、发送前会复查对象状态，若扫描期间完成确认（或对象被暂停/删除），本次告警放弃并释放占位，不占用事件额度。
+- **回读**：`GET /api/v1/admin/statuses` 每个对象返回 `greeting_period`/`greeting_claim` 与 `alert_event`/`alert_claims`（周期、事件、状态、关联日志）；`GET /api/v1/sms-logs` 每条日志带 `period_key` 与关联 `claim`（占用关系与结果）。手工触发接口 `POST /api/v1/admin/jobs/greetings|alerts` 返回 `{sent, skipped, failed, released}` 汇总。
+
 ## 本地开发
 
 需要 Go 1.22+ 与可用的 MySQL 8.0：

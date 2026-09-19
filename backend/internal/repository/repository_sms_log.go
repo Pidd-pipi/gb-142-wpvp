@@ -26,7 +26,7 @@ func (r *SMSLogRepository) List(ctx context.Context, page, pageSize int, recipie
 	if err := q.Count(&total).Error; err != nil {
 		return nil, 0, fmt.Errorf("count sms logs: %w", err)
 	}
-	if err := q.Order("sent_at desc").Offset((page - 1) * pageSize).Limit(pageSize).Find(&items).Error; err != nil {
+	if err := q.Preload("Claim").Order("sent_at desc").Offset((page - 1) * pageSize).Limit(pageSize).Find(&items).Error; err != nil {
 		return nil, 0, fmt.Errorf("list sms logs: %w", err)
 	}
 	return items, total, nil

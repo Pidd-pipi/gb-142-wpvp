@@ -15,18 +15,18 @@ func NewAlertHandler(base *Handler, notifications *service.NotificationService, 
 	return &AlertHandler{Handler: base, notifications: notifications, alerts: alerts}
 }
 func (h *AlertHandler) RunGreetings(c *gin.Context) {
-	count, err := h.notifications.SendDueGreetings(c.Request.Context())
+	summary, err := h.notifications.SendDueGreetings(c.Request.Context())
 	if err != nil {
 		respondError(c, err)
 		return
 	}
-	ok(c, gin.H{"sent": count})
+	ok(c, summary)
 }
 func (h *AlertHandler) RunAlerts(c *gin.Context) {
-	count, err := h.alerts.SendOverdueAlerts(c.Request.Context())
+	summary, err := h.alerts.SendOverdueAlerts(c.Request.Context())
 	if err != nil {
 		respondError(c, err)
 		return
 	}
-	ok(c, gin.H{"sent": count})
+	ok(c, summary)
 }

@@ -15,21 +15,21 @@ type Scheduler struct {
 func New(notification *service.NotificationService, alerts *service.AlertService, greetingSpec, alertSpec string, logger *slog.Logger) (*Scheduler, error) {
 	c := cron.New()
 	if _, err := c.AddFunc(greetingSpec, func() {
-		count, err := notification.SendDueGreetings(contextBackground())
+		summary, err := notification.SendDueGreetings(contextBackground())
 		if err != nil {
 			logger.Error("scheduled greetings failed", "error", err)
 		} else {
-			logger.Info("scheduled greetings finished", "count", count)
+			logger.Info("scheduled greetings finished", "sent", summary.Sent, "skipped", summary.Skipped, "failed", summary.Failed)
 		}
 	}); err != nil {
 		return nil, fmt.Errorf("register greeting cron: %w", err)
 	}
 	if _, err := c.AddFunc(alertSpec, func() {
-		count, err := alerts.SendOverdueAlerts(contextBackground())
+		summary, err := alerts.SendOverdueAlerts(contextBackground())
 		if err != nil {
 			logger.Error("scheduled alerts failed", "error", err)
 		} else {
-			logger.Info("scheduled alerts finished", "count", count)
+			logger.Info("scheduled alerts finished", "sent", summary.Sent, "skipped", summary.Skipped, "failed", summary.Failed, "released", summary.Released)
 		}
 	}); err != nil {
 		return nil, fmt.Errorf("register alert cron: %w", err)
