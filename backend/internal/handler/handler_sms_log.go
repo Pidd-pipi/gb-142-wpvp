@@ -17,7 +17,7 @@ func NewSMSLogHandler(base *Handler, repo *repository.SMSLogRepository) *SMSLogH
 }
 func (h *SMSLogHandler) List(c *gin.Context) {
 	page, size := pagination(c)
-	var recipientID *uint
+	var filter repository.SMSLogFilter
 	if raw := c.Query("recipient_id"); raw != "" {
 		id, err := strconv.ParseUint(raw, 10, 64)
 		if err != nil || id == 0 {
@@ -25,9 +25,11 @@ func (h *SMSLogHandler) List(c *gin.Context) {
 			return
 		}
 		parsed := uint(id)
-		recipientID = &parsed
+		filter.CareRecipientID = &parsed
 	}
-	items, total, err := h.repo.List(c.Request.Context(), page, size, recipientID)
+	filter.Kind = c.Query("kind")
+	filter.Result = c.Query("result")
+	items, total, err := h.repo.List(c.Request.Context(), page, size, filter)
 	if err != nil {
 		respondError(c, err)
 		return

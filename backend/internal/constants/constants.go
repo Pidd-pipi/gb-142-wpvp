@@ -13,4 +13,10 @@ const (
 
 	SMSKindGreeting = "greeting"
 	SMSKindAlert    = "alert"
+
+	// Send occupancy lifecycle states.
+	OccupancyProcessing = "processing"
+	OccupancySuccess    = "success"
+	OccupancyFailed     = "failed"
+	OccupancyAbandoned  = "abandoned"
 )

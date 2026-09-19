@@ -23,6 +23,17 @@ docker compose down
 - 节日、天气、季节、通用分类的模板库 CRUD。
 - 内部日志查询和 API Key 保护的外部日志查询。
 
+## 并发幂等闭环
+
+问候与告警都通过一张 `send_occupancies` 占用表（数据库唯一索引 + 租约）保证“成功只发一次”，并发扫描、重复触发、失败重试都安全：
+
+- **问候按关怀频率形成唯一周期**：周期键 `period_key` 由关怀开始时间与频率分桶得到（如每天一个桶）。同一关怀对象在同一周期内最多只有一条成功记录。
+- **告警按最近确认形成唯一事件**：事件键 `event_key` 取自最近确认时间（从未确认为固定 `never-confirmed`）。每位家属订阅在同一事件内最多一条成功告警；新的确认会开启新事件。
+- **先占用后发送**：扫描先原子抢占周期/事件，抢到租约才发送。已成功或租约仍有效的占用会让本次直接跳过，因此并发扫描与手工重复触发不会重复发送；崩溃遗留的过期租约可被后续扫描接管重试。
+- **扫描期间完成确认**：抢占后会再次回读对象，若确认已落地则本次告警放弃，置为 `abandoned` 且**不占用事件**，下次真正超期仍可告警。
+- **发送失败只记失败**：失败写一条 `failed` 日志并释放租约（置 `failed`），不封口周期/事件，后续扫描可重新抢占重试；成功后写 `success` 日志并封口，永不再发。
+- **回读**：`GET /api/v1/admin/occupancies` 可按对象/类型回读周期键、事件键、结果状态（processing/success/failed/abandoned）、尝试次数与成功日志关联（`success_log_id`、短信日志的 `occupancy_id`）。
+
 ## 本地开发
 
 需要 Go 1.22+ 与可用的 MySQL 8.0：
@@ -80,8 +91,9 @@ go run ./cmd/server
 | POST / GET | `/api/v1/recipients/:id/subscriptions` | 新增 / 查询家属订阅 |
 | POST / GET | `/api/v1/templates` | 新增 / 查询模板，支持 `?category=weather` |
 | GET / PUT / DELETE | `/api/v1/templates/:id` | 模板详情 / 更新 / 删除 |
-| GET | `/api/v1/sms-logs` | 内部发送日志查询 |
+| GET | `/api/v1/sms-logs` | 内部发送日志查询，支持 `?recipient_id=&kind=greeting|alert&result=success|failed` |
 | GET | `/api/v1/admin/statuses` | 管理员对象状态查询 |
+| GET | `/api/v1/admin/occupancies` | 周期/事件占用回读，支持 `?recipient_id=&kind=greeting|alert` |
 | POST | `/api/v1/admin/jobs/greetings` | 手工触发一次问候扫描（验收辅助） |
 | POST | `/api/v1/admin/jobs/alerts` | 手工触发一次超时告警扫描（验收辅助） |
 | GET | `/api/v1/external/sms-logs` | 外部日志接口，须 `X-API-Key` |

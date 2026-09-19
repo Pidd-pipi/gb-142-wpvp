@@ -17,7 +17,24 @@ paths:
     get: { summary: 模板列表, responses: { '200': { description: success } } }
     post: { summary: 新增模板, responses: { '201': { description: created } } }
   /api/v1/sms-logs:
-    get: { summary: 短信发送日志, responses: { '200': { description: success } } }
+    get:
+      summary: 短信发送日志
+      parameters:
+        - { name: recipient_id, in: query, required: false, schema: { type: integer } }
+        - { name: kind, in: query, required: false, schema: { type: string, enum: [greeting, alert] } }
+        - { name: result, in: query, required: false, schema: { type: string, enum: [success, failed] } }
+        - { name: page, in: query, required: false, schema: { type: integer, default: 1 } }
+        - { name: page_size, in: query, required: false, schema: { type: integer, default: 20 } }
+      responses: { '200': { description: success } }
+  /api/v1/admin/occupancies:
+    get:
+      summary: 问候周期/告警事件占用回读（周期键、事件键、结果、成功日志关联）
+      parameters:
+        - { name: recipient_id, in: query, required: false, schema: { type: integer } }
+        - { name: kind, in: query, required: false, schema: { type: string, enum: [greeting, alert] } }
+        - { name: page, in: query, required: false, schema: { type: integer, default: 1 } }
+        - { name: page_size, in: query, required: false, schema: { type: integer, default: 20 } }
+      responses: { '200': { description: success } }
   /api/v1/external/sms-logs:
     get:
       summary: 外部查询发送日志

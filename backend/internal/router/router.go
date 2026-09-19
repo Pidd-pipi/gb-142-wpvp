@@ -41,6 +41,7 @@ func New(apiKey string, handlers Handlers) *gin.Engine {
 	api.DELETE("/templates/:id", handlers.Templates.Delete)
 	api.GET("/sms-logs", handlers.SMSLogs.List)
 	api.GET("/admin/statuses", handlers.Admin.Statuses)
+	api.GET("/admin/occupancies", handlers.Admin.Occupancies)
 	api.POST("/admin/jobs/greetings", handlers.Alerts.RunGreetings)
 	api.POST("/admin/jobs/alerts", handlers.Alerts.RunAlerts)
 	external := api.Group("/external", middleware.APIKey(apiKey))

@@ -41,6 +41,7 @@ func main() {
 	templateRepo := repository.NewTemplateRepository(db)
 	smsLogRepo := repository.NewSMSLogRepository(db)
 	confirmRepo := repository.NewReplyConfirmRepository(db)
+	occupancyRepo := repository.NewSendOccupancyRepository(db)
 	if err := service.SeedDefaultTemplates(context.Background(), templateRepo); err != nil {
 		logger.Error("seed templates", "error", err)
 		os.Exit(1)
@@ -48,18 +49,19 @@ func main() {
 	recipientService := service.NewRecipientService(recipientRepo, confirmRepo, logger)
 	subscriptionService := service.NewSubscriptionService(recipientRepo, subscriptionRepo, logger)
 	templateService := service.NewTemplateService(templateRepo)
-	provider := service.NewLogSMSSender(smsLogRepo, logger)
-	smsService := service.NewSMSService(provider)
-	notificationService := service.NewNotificationService(recipientRepo, templateRepo, smsService, logger)
-	alertService := service.NewAlertService(recipientRepo, subscriptionRepo, smsService, cfg.ConfirmTimeout, logger)
+	provider := service.NewLogSMSSender(logger)
+	smsService := service.NewSMSService(provider, smsLogRepo)
+	notificationService := service.NewNotificationService(recipientRepo, templateRepo, occupancyRepo, smsService, logger)
+	alertService := service.NewAlertService(recipientRepo, subscriptionRepo, occupancyRepo, smsService, cfg.ConfirmTimeout, logger)
 	statusService := service.NewStatusService(recipientRepo, cfg.ConfirmTimeout)
+	occupancyService := service.NewOccupancyService(occupancyRepo)
 	jobs, err := scheduler.New(notificationService, alertService, cfg.GreetingCronExpression, cfg.AlertCronExpression, logger)
 	if err != nil {
 		logger.Error("create scheduler", "error", err)
 		os.Exit(1)
 	}
 	jobs.Start()
-	engine := router.New(cfg.APIKey, router.Handlers{Recipients: handler.NewRecipientHandler(handler.NewBaseHandler(), recipientService), Subscriptions: handler.NewSubscriptionHandler(handler.NewBaseHandler(), subscriptionService), Templates: handler.NewTemplateHandler(handler.NewBaseHandler(), templateService), SMSLogs: handler.NewSMSLogHandler(handler.NewBaseHandler(), smsLogRepo), Alerts: handler.NewAlertHandler(handler.NewBaseHandler(), notificationService, alertService), Admin: handler.NewAdminHandler(handler.NewBaseHandler(), statusService)})
+	engine := router.New(cfg.APIKey, router.Handlers{Recipients: handler.NewRecipientHandler(handler.NewBaseHandler(), recipientService), Subscriptions: handler.NewSubscriptionHandler(handler.NewBaseHandler(), subscriptionService), Templates: handler.NewTemplateHandler(handler.NewBaseHandler(), templateService), SMSLogs: handler.NewSMSLogHandler(handler.NewBaseHandler(), smsLogRepo), Alerts: handler.NewAlertHandler(handler.NewBaseHandler(), notificationService, alertService), Admin: handler.NewAdminHandler(handler.NewBaseHandler(), statusService, occupancyService)})
 	server := &http.Server{Addr: ":" + cfg.Port, Handler: engine, ReadHeaderTimeout: 5 * time.Second}
 	go func() {
 		logger.Info("http server starting", "port", cfg.Port)

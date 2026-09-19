@@ -65,7 +65,11 @@ func (r *TemplateRepository) RandomActive(ctx context.Context, category string) 
 	if category != "" {
 		q = q.Where("category = ?", category)
 	}
-	err := q.Order("RAND()").First(&item).Error
+	order := "RAND()"
+	if r.db.Dialector.Name() == "sqlite" {
+		order = "RANDOM()"
+	}
+	err := q.Order(order).First(&item).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, ErrNotFound
 	}
